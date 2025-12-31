@@ -2,7 +2,11 @@
 
 Boxes is a small UI framework where pure functions render DOM and handle messages explicitly without hidden lifecycles or magic.
 
-### Key principles
+## Download
+
+https://github.com/stepan-mitkin/boxes/blob/main/src/boxes.js
+
+## Key principles
 
 * **Rendering is pure**
   The DOM is described by a pure `render` function, similar in spirit to React.
