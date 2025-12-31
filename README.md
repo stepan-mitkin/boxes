@@ -4,7 +4,7 @@ Boxes is a small UI framework where pure functions render DOM and handle message
 
 ## Download
 
-https://github.com/stepan-mitkin/boxes/blob/main/src/boxes.js
+https://raw.githubusercontent.com/stepan-mitkin/boxes/main/src/boxes.js
 
 ## Key principles
 
