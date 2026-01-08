@@ -278,14 +278,34 @@
     }
 
     var callback = function (event) {
+      var eventCopy = copyEvent(event);
       var signal = {
         target: target,
         name: methodName,
-        arg: event,
+        arg: eventCopy,
       };
       runCallback(state, signal);
     };
     container.addEventListener(eventName, callback);
+  }
+
+  function copyEvent(event) {
+    var result = {};
+
+    for (var prop in event) {
+      var value = event[prop];
+      var t = typeof value;
+
+      if (t === "string" || t === "number" || t === "boolean") {
+        result[prop] = value;
+      }
+    }
+
+    if (event.target && typeof event.target === "object" && event.target.id) {
+      result.targetId = event.target.id;
+    }
+
+    return result;
   }
 
   function sendMessage(state, target, name, arg) {
