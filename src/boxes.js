@@ -130,10 +130,30 @@
     renderWidgetTree(state, renderContext, virtualElement, container);
   }
 
+  function translate(state, textId) {
+    var value = state.translations[textId];
+    if (value === undefined) {
+      console.error("String not translated", textId);
+      return textId;
+    }
+    return value;
+  }
+
+  function getThemeValue(state, itemId) {
+    var value = state.theme[itemId];
+    return value;
+  }
+
   function createCallbackContext(state) {
     var self = {};
     self.runFunction = function (nodeId, name, arg) {
       return runFunction(state, nodeId, name, arg);
+    };
+    self.translate = function (textId) {
+      return translate(state, textId);
+    };
+    self.getThemeValue = function (itemId) {
+      return getThemeValue(state, itemId);
     };
     return self;
   }
@@ -146,6 +166,12 @@
 
   function createRenderContext(state) {
     return {
+      translate: function (textId) {
+        return translate(state, textId);
+      },
+      getThemeValue: function (itemId) {
+        return getThemeValue(state, itemId);
+      },
       buildAbsElement: function (nodeId, rect) {
         return buildAbsElement(state, nodeId, rect);
       },
@@ -538,6 +564,8 @@
 
   function createBoxes() {
     var state = {
+      translations: {},
+      theme: {},
       nodes: {},
       started: false,
       builders: {},
@@ -563,6 +591,12 @@
       },
       sendMessage: function (target, name, arg) {
         sendMessage(state, target, name, arg);
+      },
+      addTranslation: function (textId, text) {
+        state.translations[textId] = text;
+      },
+      setThemeValue: function (itemId, value) {
+        state.theme[itemId] = value;
       },
     };
   }

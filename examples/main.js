@@ -273,6 +273,7 @@
   function renderTextButton(renderContext) {
     var props = renderContext.props;
     var style = {
+      color: renderContext.getThemeValue("BUTTON_TEXT"),
       border: "solid 1px black",
       borderRadius: 3,
       paddingLeft: 5,
@@ -281,7 +282,7 @@
     };
     return {
       elementId: makeMainContainerId(renderContext),
-      text: props.text,
+      text: renderContext.translate(props.text),
       className: "button-basis",
       style: style,
       events: {
@@ -333,6 +334,9 @@
 
     boxes.registerGlobalSlot("addItem", addItem);
     boxes.registerGlobalSlot("changeSolid", changeSolid);
+    boxes.addTranslation("ADD_ITEM", "Add item");
+    boxes.addTranslation("CLICK_ME", "Click me");
+    boxes.setThemeValue("BUTTON_TEXT", "darkred");
     var uiSpec = {
       builder: "createTopBottomContainer",
       props: { topHeight: 50 },
@@ -345,7 +349,7 @@
               id: "btn1",
               builder: "createTextButton",
               props: {
-                text: "Click me!",
+                text: "CLICK_ME",
                 slot: "changeSolid",
               },
             },
@@ -364,7 +368,7 @@
                 {
                   builder: "createTextButton",
                   props: {
-                    text: "Add item",
+                    text: "ADD_ITEM",
                     slot: "addItem",
                   },
                 },
