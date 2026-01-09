@@ -65,7 +65,12 @@
     }
     return {
       rememberScroll: true,
-      style: { background: "#d0ffd0", padding: 10 },
+      style: {
+        background: "#d0ffd0",
+        padding: 10,
+        maxHeight: 300,
+        overflowY: "auto",
+      },
       children: children,
     };
   }

@@ -197,8 +197,32 @@
         }
         container.appendChild(element);
         renderWidgetTree(state, renderContext, child, element);
+        if (child.id && child.rememberScroll) {
+          handleScroll(node, element);
+        }
       }
     }
+  }
+
+  function handleScroll(node, element) {
+    var scrollX = node.scrollX;
+    var scrollY = node.scrollY;
+    if (
+      (scrollX !== undefined || scrollY !== undefined) &&
+      (element.scrollLeft !== scrollX || element.scrollTop !== scrollY)
+    ) {
+      element.scroll({
+        top: scrollY,
+        left: scrollX,
+        behavior: "instant",
+      });
+    }
+    element.addEventListener("scroll", () => rememberScroll(node, element));
+  }
+
+  function rememberScroll(node, element) {
+    node.scrollX = element.scrollLeft;
+    node.scrollY = element.scrollTop;
   }
 
   function setElementId(virtualElement, container) {
