@@ -295,17 +295,31 @@
     for (var prop in event) {
       var value = event[prop];
       var t = typeof value;
-
-      if (t === "string" || t === "number" || t === "boolean") {
-        result[prop] = value;
+      if (prop === "target" && t === "object") {
+        result[prop] = copyTarget(value);
+      } else {
+        if (t === "string" || t === "number" || t === "boolean") {
+          result[prop] = value;
+        }
       }
     }
-
-    if (event.target && typeof event.target === "object" && event.target.id) {
-      result.targetId = event.target.id;
-    }
-
     return result;
+  }
+
+  function copyTarget(target) {
+    var copy = {};
+    copyProp(copy, target, "id");
+    copyProp(copy, target, "value");
+    copyProp(copy, target, "checked");
+    copyProp(copy, target, "text");
+    copyProp(copy, target, "tagName");
+    return copy;
+  }
+
+  function copyProp(target, source, prop) {
+    if (prop in source) {
+      target[prop] = source[prop];
+    }
   }
 
   function sendMessage(state, target, name, arg) {
