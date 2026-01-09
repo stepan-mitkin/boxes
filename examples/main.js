@@ -204,10 +204,8 @@
   async function changeColor(boxes) {
     for (var i = 0; i < 100; i++) {
       await pause(1000);
-      console.log("solid1", "setColor", "red");
       boxes.sendMessage("solid1", "setColor", "red");
       await pause(1000);
-      console.log("solid1", "setColor", "black");
       boxes.sendMessage("solid1", "setColor", "black");
     }
   }
@@ -255,7 +253,8 @@
     return {
       state: {},
       render: renderTextButton,
-      click: function (callbackContext) {
+      click: function (callbackContext, event) {
+        console.log("click", event.userData);
         var text = callbackContext.props.text;
         return {
           emit: [{ name: callbackContext.props.slot, arg: text }],
@@ -287,7 +286,16 @@
       style: style,
       events: {
         target: renderContext.id,
-        click: "click",
+        click: {
+          method: "click",
+          userData: "I am user data",
+          stopPropagation: true,
+          preventDefault: true,
+          returnFalse: true,
+          capture: true,
+          once: false,
+          passive: false,
+        },
       },
     };
   }

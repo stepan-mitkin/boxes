@@ -319,24 +319,55 @@
 
   function bindEvent(state, container, eventName, eventInfo, target) {
     var methodName;
+    var stopPropagation = false;
+    var preventDefault = false;
+    var returnFalse = false;
+    var capture = false;
+    var once = false;
+    var passive = false;
+    var userData = undefined;
     if (typeof eventInfo === "string") {
       methodName = eventInfo;
     } else if (eventInfo.method) {
       methodName = eventInfo.method;
+      stopPropagation = eventInfo.stopPropagation || false;
+      preventDefault = eventInfo.preventDefault || false;
+      returnFalse = eventInfo.returnFalse || false;
+      capture = eventInfo.capture || false;
+      once = eventInfo.once || false;
+      passive = eventInfo.passive || false;
+      userData = eventInfo.userData;
     } else {
       throw new Error("Bad event info");
     }
 
     var callback = function (event) {
       var eventCopy = copyEvent(event);
+      if (userData !== undefined) {
+        eventCopy.userData = userData;
+      }
       var signal = {
         target: target,
         name: methodName,
         arg: eventCopy,
       };
+      if (stopPropagation) {
+        event.stopPropagation();
+      }
+      if (preventDefault) {
+        event.preventDefault();
+      }
       runCallback(state, signal);
+      if (returnFalse) {
+        return false;
+      }
     };
-    container.addEventListener(eventName, callback);
+    var options = {
+      capture,
+      once,
+      passive,
+    };
+    container.addEventListener(eventName, callback, options);
   }
 
   function copyEvent(event) {
