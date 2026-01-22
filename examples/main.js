@@ -257,7 +257,13 @@
         console.log("click", event.userData);
         var text = callbackContext.props.text;
         return {
-          emit: [{ name: callbackContext.props.slot, arg: text }],
+          emit: [
+            {
+              target: callbackContext.props.target,
+              name: callbackContext.props.method,
+              arg: text,
+            },
+          ],
         };
       },
       setText: function (callbackContext, text) {
@@ -272,7 +278,7 @@
   function renderTextButton(renderContext) {
     var props = renderContext.props;
     var style = {
-      color: renderContext.getThemeValue("BUTTON_TEXT"),
+      color: renderContext.getGlobal("BUTTON_TEXT"),
       border: "solid 1px black",
       borderRadius: 3,
       paddingLeft: 5,
@@ -325,6 +331,28 @@
     };
   }
 
+  function createAppWidget() {
+    return {
+      addItem: addItem,
+      changeSolid: changeSolid,
+      render: renderSingleChild,
+    };
+  }
+
+  function renderSingleChild(renderContext) {
+    var rect = {
+      left: 0,
+      top: 0,
+      width: renderContext.rect.width,
+      height: renderContext.rect.height,
+    };
+    var childId = renderContext.children[0];
+    var child = renderContext.buildAbsElement(childId, rect);
+    return {
+      children: [child],
+    };
+  }
+
   function main() {
     var boxes = createBoxes(); // create the framework
     boxes.registerBuilder("createTopBottomContainer", createTopBottomContainer);
@@ -332,6 +360,7 @@
       "createHorizontalContainer",
       createHorizontalContainer,
     );
+    boxes.registerBuilder("createAppWidget", createAppWidget);
     boxes.registerBuilder("createTextButton", createTextButton);
     boxes.registerBuilder("createMultiWidget", createMultiWidget);
     boxes.registerBuilder("createSolid", createSolid);
@@ -340,60 +369,67 @@
     boxes.registerBuilder("buildListWidget", buildListWidget);
     boxes.registerBuilder("createDiv", createDiv);
 
-    boxes.registerGlobalSlot("addItem", addItem);
-    boxes.registerGlobalSlot("changeSolid", changeSolid);
     boxes.addTranslation("ADD_ITEM", "Add item");
     boxes.addTranslation("CLICK_ME", "Click me");
-    boxes.setThemeValue("BUTTON_TEXT", "darkred");
+    boxes.setGlobal("BUTTON_TEXT", "darkred");
+
     var uiSpec = {
-      builder: "createTopBottomContainer",
-      props: { topHeight: 50 },
+      id: "root",
+      builder: "createAppWidget",
       children: [
         {
-          builder: "createHorizontalContainer",
-          props: { padding: 3 },
+          builder: "createTopBottomContainer",
+          props: { topHeight: 50 },
           children: [
             {
-              id: "btn1",
-              builder: "createTextButton",
-              props: {
-                text: "CLICK_ME",
-                slot: "changeSolid",
-              },
-            },
-          ],
-        },
-        {
-          builder: "createMultiWidget",
-          id: "multi",
-          props: { active: 0 },
-          children: [
-            {
-              id: "solid1",
-              builder: "createSolid",
-              props: { background: "orange" },
+              builder: "createHorizontalContainer",
+              props: { padding: 3 },
               children: [
                 {
+                  id: "btn1",
                   builder: "createTextButton",
                   props: {
-                    text: "ADD_ITEM",
-                    slot: "addItem",
+                    text: "CLICK_ME",
+                    target: "root",
+                    method: "changeSolid",
                   },
-                },
-                {
-                  builder: "createDiv",
-                },
-                {
-                  builder: "buildListWidget",
-                  id: "my-list",
                 },
               ],
             },
             {
-              builder: "createDummy",
-              props: {
-                background: "orangered",
-              },
+              builder: "createMultiWidget",
+              id: "multi",
+              props: { active: 0 },
+              children: [
+                {
+                  id: "solid1",
+                  builder: "createSolid",
+                  props: { background: "orange" },
+                  children: [
+                    {
+                      builder: "createTextButton",
+                      props: {
+                        text: "ADD_ITEM",
+                        target: "root",
+                        method: "addItem",
+                      },
+                    },
+                    {
+                      builder: "createDiv",
+                    },
+                    {
+                      builder: "buildListWidget",
+                      id: "my-list",
+                    },
+                  ],
+                },
+                {
+                  builder: "createDummy",
+                  props: {
+                    background: "orangered",
+                  },
+                },
+              ],
             },
           ],
         },

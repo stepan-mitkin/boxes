@@ -88,24 +88,6 @@
     state.builders[name] = builder;
   }
 
-  function registerGlobalSlot(state, name, callback) {
-    if (name in state.slots) {
-      throw new Error("Slot already registered: " + name);
-    }
-    if (typeof callback !== "function") {
-      throw new Error("Function expected: " + name);
-    }
-    state.slots[name] = callback;
-  }
-
-  function getGlobalSlot(state, name) {
-    var slot = state.slots[name];
-    if (!slot) {
-      throw new Error("Slot not registered: " + name);
-    }
-    return slot;
-  }
-
   function start(state, spec, container) {
     if (state.started) {
       throw new Error("Already started");
@@ -139,8 +121,8 @@
     return value;
   }
 
-  function getThemeValue(state, itemId) {
-    var value = state.theme[itemId];
+  function getGlobal(state, itemId) {
+    var value = state.globals[itemId];
     return value;
   }
 
@@ -152,8 +134,8 @@
     self.translate = function (textId) {
       return translate(state, textId);
     };
-    self.getThemeValue = function (itemId) {
-      return getThemeValue(state, itemId);
+    self.getGlobal = function (itemId) {
+      return getGlobal(state, itemId);
     };
     return self;
   }
@@ -169,8 +151,8 @@
       translate: function (textId) {
         return translate(state, textId);
       },
-      getThemeValue: function (itemId) {
-        return getThemeValue(state, itemId);
+      getGlobal: function (itemId) {
+        return getGlobal(state, itemId);
       },
       buildAbsElement: function (nodeId, rect) {
         return buildAbsElement(state, nodeId, rect);
@@ -414,58 +396,115 @@
 
   function runCallback(state, signal) {
     var privateContext = { signals: [signal], updateCount: 0 };
-    var callbackContext = createCallbackContext(state);
     var counter = 0;
     while (privateContext.signals.length > 0) {
       var current = privateContext.signals.shift();
-      runCallbackCore(state, current, callbackContext, privateContext);
+      runCallbackCore(state, current, privateContext);
       counter++;
       if (counter > 1000) {
         throw new Error("Too many emits");
       }
     }
 
-    if (privateContext.redrawAll || privateContext.updateCount > 1) {
-      redrawAll(state);
-    } else if (privateContext.updateCount === 1) {
-      redrawWidget(state, privateContext.nodeToRedraw);
+    redrawChanges(state, privateContext);
+  }
+
+  function applyDeferredResult(state, result, nodeId) {
+    if (!(nodeId in state.nodes)) {
+      console.error("Node id not found", nodeId);
+      return;
+    }
+
+    var signal = {
+      target: nodeId,
+      result: result,
+    };
+    runCallback(state, signal);
+  }
+
+  function onError(state, nodeId, name, err) {
+    var message = "Error";
+    if (nodeId && state.nodes[nodeId]) {
+      message += " builder:" + state.nodes[nodeId].builderName;
+    }
+    console.error(message, nodeId, name, err);
+  }
+
+  function redrawChanges(state, privateContext) {
+    try {
+      if (privateContext.redrawAll || privateContext.updateCount > 1) {
+        redrawAll(state);
+      } else if (privateContext.updateCount === 1) {
+        redrawWidget(state, privateContext.nodeToRedraw);
+      }
+    } catch (ex) {
+      onError(state, undefined, "Error during redraw", ex);
     }
   }
 
-  function runCallbackCore(state, signal, callbackContext, privateContext) {
-    var result = undefined;
-    if (signal.target) {
-      var node = getNode(state, signal.target);
-      var method = node.obj[signal.name];
-      copyNodeDataToContext(node, callbackContext);
-      result = method(callbackContext, signal.arg);
-      if (result) {
-        var redrawMyself = false;
-        if (result.setLocalState) {
-          redrawMyself = true;
-          node.obj.state = result.setLocalState;
+  function runCallbackCore(state, signal, privateContext) {
+    var nodeId = undefined;
+    try {
+      nodeId = signal.target;
+      var node = getNode(state, nodeId);
+      var result;
+      if (signal.result) {
+        result = signal.result;
+      } else {
+        var method = node.obj[signal.name];
+        if (typeof method !== "function") {
+          throw new Error(signal.name + " is not a function");
         }
-        if (result.setChildren) {
-          redrawMyself = true;
-          node.children = result.setChildren.map((childSpec) =>
-            buildChild(state, childSpec),
-          );
-        }
-        if (redrawMyself) {
-          if (!result.updates || result.updates.length === 0) {
-            privateContext.updateCount++;
-            privateContext.nodeToRedraw = node;
-          }
+        var callbackContext = createCallbackContext(state);
+        copyNodeDataToContext(node, callbackContext);
+        result = method(callbackContext, signal.arg);
+        if (result && typeof result.then === "function") {
+          result
+            .then((value) => applyDeferredResult(state, value, nodeId))
+            .catch((err) =>
+              onError(state, nodeId, "Async callback error", err),
+            );
+          return;
         }
       }
-    } else {
-      var method = getGlobalSlot(state, signal.name);
-      clearNodeDataFromContext(callbackContext);
-      result = method(callbackContext, signal.arg);
+      handleCallbackResult(state, result, node, privateContext);
+    } catch (ex) {
+      onError(state, nodeId, "Async callback error", ex);
     }
+  }
+
+  function removeSubtree(state, nodeId) {
+    var node = getNode(state, nodeId);
+    for (var childId in node.children) {
+      removeSubtree(state, childId);
+    }
+    delete state.nodes[nodeId];
+  }
+
+  function handleCallbackResult(state, result, node, privateContext) {
     if (!result) {
       return;
     }
+
+    var redrawMyself = false;
+    if (result.setLocalState) {
+      redrawMyself = true;
+      node.obj.state = result.setLocalState;
+    }
+    if (result.setChildren) {
+      redrawMyself = true;
+      node.children.forEach((childId) => removeSubtree(state, childId));
+      node.children = result.setChildren.map((childSpec) =>
+        buildChild(state, childSpec),
+      );
+    }
+    if (redrawMyself) {
+      if (!result.updates || result.updates.length === 0) {
+        privateContext.updateCount++;
+        privateContext.nodeToRedraw = node;
+      }
+    }
+
     if (result.redrawAll) {
       privateContext.redrawAll = true;
     }
@@ -561,6 +600,7 @@
     }
     var obj = builder(spec.props);
     var node = {
+      builderName: builderName,
       id: id,
       obj: obj,
       props: spec.props || {},
@@ -596,23 +636,19 @@
   function createBoxes() {
     var state = {
       translations: {},
-      theme: {},
+      globals: {},
       nodes: {},
       started: false,
       builders: {},
-      slots: {},
       root: undefined,
       nextId: 1,
     };
     return {
       getVersion: function () {
-        return "0.0.2";
+        return "0.0.3";
       },
       registerBuilder: function (name, builder) {
         return registerBuilder(state, name, builder);
-      },
-      registerGlobalSlot: function (name, callback) {
-        return registerGlobalSlot(state, name, callback);
       },
       start: function (spec, container) {
         return start(state, spec, container);
@@ -626,8 +662,8 @@
       addTranslation: function (textId, text) {
         state.translations[textId] = text;
       },
-      setThemeValue: function (itemId, value) {
-        state.theme[itemId] = value;
+      setGlobal: function (itemId, value) {
+        state.globals[itemId] = value;
       },
     };
   }
