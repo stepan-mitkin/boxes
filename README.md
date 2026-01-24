@@ -105,9 +105,9 @@ If you want to re-render — re-render.
 
 Boxes communicate via **messages**:
 
-* DOM events → box methods
-* box methods → instructions
-* instructions → state changes, DOM updates, or new box method calls
+* DOM events → event handlers
+* event handlers → instructions
+* instructions → state changes, DOM updates, or new event handler calls
 
 There are also **functions** (pure queries over state).
 
