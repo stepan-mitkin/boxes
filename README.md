@@ -54,7 +54,7 @@ With **Boxes**, pure functions implement both business logic and rendering.
 
 In short:
 
-* Rendering describes structure.
+* Rendering describes UI structure.
 * Event handlers describe change.
 
 
@@ -177,8 +177,6 @@ Do not use `sendMessage` to send messages from handlers.
 ```js
 boxes.sendMessage(targetId, methodName, argument)
 ```
-
-If `targetId` is `undefined`, the message is sent to a global slot.
 
 ## What is a box?
 
@@ -395,7 +393,7 @@ function createTextButton() {
 
         click: function(ctx) {
             return {
-                emit: [{ name: ctx.props.slot, arg: ctx.props.text }]
+              emit: [{ target: "root", name: ctx.props.slot, arg: ctx.props.text }]
             }
         },
 
