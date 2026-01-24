@@ -12,21 +12,21 @@ https://raw.githubusercontent.com/stepan-mitkin/boxes/main/src/boxes.js
 
 ## Key principles
 
-* **Rendering is pure**
+* **Rendering is pure**.
   The DOM is described by a pure `render` function, similar in spirit to React.
   Given the same inputs, `render` always produces the same DOM description.
 
-* **Imperative DOM updates**
+* **Imperative DOM updates**.
   The DOM can be updated surgically without calling `render`.
   If only a small change is needed, Boxes updates exactly that part.
 
-* **Event handlers are pure**
+* **Event handlers are pure**.
   Event handlers do not mutate state or touch the DOM directly.
 
-* **Event handlers are can by async**
+* **Event handlers can be async**.
   Async event handlers may call the server and `await` other long-running operations.
 
-* **Explicit handler semantics**
+* **Explicit handler semantics**.
   Event handlers follow this shape:
 
   ```
